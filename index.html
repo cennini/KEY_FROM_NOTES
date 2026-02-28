@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Note Finder Pro</title>
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --primary: #2ecc71; --text: #f8fafc; --muted: #475569; }
+        
+        body { 
+            font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text);
+            margin: 0; padding: 5px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .header { text-align: center; padding: 5px 0; }
+        
+        /* STILE UNIFICATO PER TITOLI, BOTTONI E TESTI TABELLA */
+        h2, .head-keys, .btn, .reset-btn, .head-degrees, .tonalita-box, .nota-box {
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            line-height: 1;
+        }
+
+        h2, .head-keys, .reset-btn, .head-degrees { text-transform: uppercase; }
+
+        h2 { margin: 0; color: var(--primary); }
+
+        .grid-container { display: grid; grid-template-columns: 1fr; gap: 1px; padding: 0; }
+        
+        .note-row {
+            display: flex; align-items: center; gap: 1px; background: rgba(255,255,255,0.02);
+            padding: 0px 1px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.05); height: 28px;
+        }
+
+        .btn {
+            flex: 1; padding: 8px 0; border-radius: 3px; border: 1px solid #334155;
+            background: #1e293b; color: var(--muted); cursor: pointer; transition: 0.1s;
+        }
+        
+        .btn.suggested { color: var(--primary); border-color: #334155; }
+        .btn.active { background: var(--primary); border-color: var(--primary); color: #0f172a !important; }
+        .btn.disabled { opacity: 0.1; pointer-events: none; }
+        
+        .reset-btn {
+            width: 100%; padding: 10px; margin: 5px 0; background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444; color: #ef4444; border-radius: 8px; cursor: pointer;
+        }
+
+        .results-box {
+            background: var(--card); padding: 8px; border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5); flex-grow: 1; overflow-y: auto;
+        }
+
+        .table-header { display: flex; gap: 4px; align-items: center; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        
+        .head-keys { flex: 2; color: var(--primary); text-align: center; }
+        .head-degrees { flex: 5; display: flex; gap: 2px; color: #94a3b8; }
+        .deg-box { flex: 1; text-align: center; }
+
+        /* LAYOUT RIGHE RISULTATI */
+        #lista-tonalita { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+        .tonalita-row { display: flex; gap: 4px; align-items: center; width: 100%; }
+
+        .tonalita-box { 
+            flex: 2; background: #0f172a; padding: 8px 2px; border-radius: 3px; 
+            border: 1px solid #334155; text-align: center; overflow: hidden;
+        }
+
+        .note-container { flex: 5; display: flex; gap: 2px; }
+
+        .nota-box { 
+            flex: 1; background: rgba(46, 204, 113, 0.05); color: var(--primary); 
+            border: 1px solid rgba(46, 204, 113, 0.2); border-radius: 2px;
+            text-align: center; padding: 8px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header"><h2>Note Finder Pro</h2></div>
+
+<div id="note-grid" class="grid-container"></div>
+
+<button class="reset-btn" onclick="resetApp()">RESET</button>
+
+<div class="results-box">
+    <div class="table-header">
+        <div class="head-keys">Keys</div>
+        <div class="head-degrees">
+            <div class="deg-box">I</div>
+            <div class="deg-box">II</div>
+            <div class="deg-box">III</div>
+            <div class="deg-box">IV</div>
+            <div class="deg-box">V</div>
+            <div class="deg-box">VI</div>
+            <div class="deg-box">VII</div>
+        </div>
+    </div>
+    <ul id="lista-tonalita"></ul>
+</div>
+
+<script>
+    const righeNote = [
+        ["DO", "DO#", "DOb"], ["RE", "RE#", "REb"], ["MI", "MI#", "MIb"],
+        ["FA", "FA#", "FAb"], ["SOL", "SOL#", "SOLb"], ["LA", "LA#", "LAb"],
+        ["SI", "SI#", "SIb"]
+    ];
+
+    const scaleNote = [
+        { nome: "DO+ / LA-", note: ["DO", "RE", "MI", "FA", "SOL", "LA", "SI"] },
+        { nome: "SOL+ / MI-", note: ["SOL", "LA", "SI", "DO", "RE", "MI", "FA#"] },
+        { nome: "RE+ / SI-", note: ["RE", "MI", "FA#", "SOL", "LA", "SI", "DO#"] },
+        { nome: "LA+ / FA#-", note: ["LA", "SI", "DO#", "RE", "MI", "FA#", "SOL#"] },
+        { nome: "MI+ / DO#-", note: ["MI", "FA#", "SOL#", "LA", "SI", "DO#", "RE#"] },
+        { nome: "SI+ / SOL#-", note: ["SI", "DO#", "RE#", "MI", "FA#", "SOL#", "LA#"] },
+        { nome: "FA#+ / RE#-", note: ["FA#", "SOL#", "LA#", "SI", "DO#", "RE#", "MI#"] },
+        { nome: "DO#+ / LA#-", note: ["DO#", "RE#", "MI#", "FA#", "SOL#", "LA#", "SI#"] },
+        { nome: "FA+ / RE-", note: ["FA", "SOL", "LA", "SIb", "DO", "RE", "MI"] },
+        { nome: "SIb+ / SOL-", note: ["SIb", "DO", "RE", "MIb", "FA", "SOL", "LA"] },
+        { nome: "MIb+ / DO-", note: ["MIb", "FA", "SOL", "LAb", "SIb", "DO", "RE"] },
+        { nome: "LAb+ / FA-", note: ["LAb", "SIb", "DO", "REb", "MIb", "FA", "SOL"] },
+        { nome: "REb+ / SIb-", note: ["REb", "MIb", "FA", "SOLb", "LAb", "SIb", "DO"] },
+        { nome: "SOLb+ / MIb-", note: ["SOLb", "LAb", "SIb", "DOb", "REb", "MIb", "FA"] },
+        { nome: "DOb+ / LAb-", note: ["DOb", "REb", "MIb", "FAb", "SOLb", "LAb", "SIb"] }
+    ];
+
+    let selezionate = new Set();
+
+    function init() {
+        const grid = document.getElementById('note-grid');
+        grid.innerHTML = '';
+        righeNote.forEach(gruppo => {
+            const row = document.createElement('div');
+            row.className = 'note-row';
+            gruppo.forEach(nota => {
+                const btn = document.createElement('button');
+                btn.className = 'btn suggested';
+                btn.innerText = nota;
+                btn.onclick = () => toggleNote(nota);
+                btn.id = `btn-${nota}`;
+                row.appendChild(btn);
+            });
+            grid.appendChild(row);
+        });
+        updateUI();
+    }
+
+    function toggleNote(nota) {
+        if (selezionate.has(nota)) selezionate.delete(nota);
+        else if (selezionate.size < 7) selezionate.add(nota);
+        updateUI();
+    }
+
+    function updateUI() {
+        const activeArray = Array.from(selezionate);
+        const res = scaleNote.filter(s => activeArray.every(n => s.note.includes(n)));
+        const notePossibili = new Set();
+        res.forEach(s => s.note.forEach(n => notePossibili.add(n)));
+
+        document.querySelectorAll('.btn').forEach(btn => {
+            const nota = btn.id.replace('btn-', '');
+            btn.classList.remove('active', 'suggested', 'disabled');
+            if (selezionate.has(nota)) btn.classList.add('active');
+            else if (activeArray.length === 0 || notePossibili.has(nota)) btn.classList.add('suggested');
+            else btn.classList.add('disabled');
+        });
+
+        const lista = document.getElementById('lista-tonalita');
+        lista.innerHTML = '';
+        
+        if (res.length && activeArray.length) {
+            res.forEach(s => {
+                const li = document.createElement('li');
+                li.className = 'tonalita-row';
+                let noteHtml = s.note.map(n => `<div class="nota-box">${n}</div>`).join('');
+                li.innerHTML = `<div class="tonalita-box">${s.nome}</div><div class="note-container">${noteHtml}</div>`;
+                lista.appendChild(li);
+            });
+        } else {
+            lista.innerHTML = '<li style="text-align:center; opacity: 0.3; font-size: 0.7rem; padding: 10px;">Select notes to find keys</li>';
+        }
+    }
+
+    function resetApp() { selezionate.clear(); updateUI(); }
+    init();
+</script>
+</body>
+</html>
