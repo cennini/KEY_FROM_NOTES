@@ -1,0 +1,1 @@
+Retrieve keys from note
